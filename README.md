@@ -1,5 +1,8 @@
 # just-runner.nvim
 
+> [!IMPORTANT]  
+> This project is completely vibe coded using copilot-cli and claude-sonnet-4.5. my only contributions is writing prompt.md and this sentence (and helping AI to figure out the bugs during implementation). but it doesn't mean that it doesn't work! it works as expected so far. feel free to open issues and I will ask the AI to help fix them:D
+
 A Neovim plugin for running [justfile](https://github.com/casey/just) targets directly from Neovim with a beautiful picker interface.
 
 ## Features
@@ -87,7 +90,7 @@ require("just-runner").setup({
 ### Configuration Options
 
 - **picker**: Choose between `"snacks"` (default) or `"telescope"` for target selection
-- **window_position**: 
+- **window_position**:
   - `"bottom"`: Opens terminal at the bottom
   - `"right"`: Opens terminal on the right side
   - `"float"`: Opens terminal in a floating window
@@ -164,14 +167,17 @@ deploy env:
 ## Troubleshooting
 
 ### "No justfile found"
+
 - Ensure you have a file named `justfile`, `Justfile`, or `.justfile` in your project
 - Check that you're in the correct directory or a subdirectory of your project
 
 ### "Telescope/Snacks not found"
+
 - Install the picker dependency you've configured
 - Or switch to a different picker in the configuration
 
 ### Terminal doesn't close
+
 - Check your `close_on_success` and `close_on_error` settings
 - The plugin won't close terminals that are waiting for input
 
