@@ -255,10 +255,16 @@ end
 
 -- Main run function
 function M.run()
+  -- Check if just command exists
+  if vim.fn.executable("just") == 0 then
+    vim.notify("just-runner.nvim: 'just' command not found. Please install it from https://github.com/casey/just", vim.log.levels.ERROR)
+    return
+  end
+  
   local justfile_path, justfile_dir = find_justfile()
   
   if not justfile_path then
-    vim.notify("No justfile found in current directory or parent directories", vim.log.levels.ERROR)
+    vim.notify("No justfile found in current directory or parent directories", vim.log.levels.WARN)
     return
   end
   
@@ -300,10 +306,16 @@ end
 
 -- Run a specific target by name
 function M.run_target_by_name(target_name)
+  -- Check if just command exists
+  if vim.fn.executable("just") == 0 then
+    vim.notify("just-runner.nvim: 'just' command not found. Please install it from https://github.com/casey/just", vim.log.levels.ERROR)
+    return
+  end
+  
   local justfile_path, justfile_dir = find_justfile()
   
   if not justfile_path then
-    vim.notify("No justfile found in current directory or parent directories", vim.log.levels.ERROR)
+    vim.notify("No justfile found in current directory or parent directories", vim.log.levels.WARN)
     return
   end
   
