@@ -1,8 +1,11 @@
-I got the following error when I used leader j:
-
-Error executing Lua callback: ...-data/lazy/snacks.nvim/lua/snacks/picker/core/picker.lua:89: attempt to concatenate a table value
-stack traceback:
-        ...-data/lazy/snacks.nvim/lua/snacks/picker/core/picker.lua:89: in function 'pick'
-        D:/just-runner.nvim/lua/just-runner/init.lua:220: in function 'snacks_picker'
-        D:/just-runner.nvim/lua/just-runner/init.lua:256: in function 'run'
-        D:/just-runner.nvim/plugin/just-runner.lua:15: in function <D:/just-runner.nvim/plugin/just-runner.lua:14>
+return {
+	dir = "D:/just-runner.nvim",
+	name = "just-runner.nvim",
+	dependencies = { "folke/snacks.nvim" },
+	config = function()
+		require("just-runner").setup()
+	end,
+	keys = {
+		{ "<leader>j", "<cmd>JustRun<cr>", desc = "Just Run" },
+	},
+}
