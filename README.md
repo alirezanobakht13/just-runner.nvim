@@ -25,47 +25,53 @@ A Neovim plugin for running [justfile](https://github.com/casey/just) targets di
 
 ## Installation
 
-### Using [lazy.nvim](https://github.com/folke/lazy.nvim)
+### Using [lazy.nvim](https://github.com/folke/lazy.nvim) (Recommended)
+
+**Important:** Use Lua function in keys to avoid loading issues:
 
 ```lua
 {
   "alirezanobakht13/just-runner.nvim",
   dependencies = {
-    -- Choose one picker:
     "folke/snacks.nvim", -- Recommended (default)
-    -- OR
-    -- "nvim-telescope/telescope.nvim",
+    -- OR use "nvim-telescope/telescope.nvim"
   },
   config = function()
     require("just-runner").setup({
-      picker = "snacks", -- or "telescope"
-      window_position = "bottom", -- "bottom", "right", or "float"
+      picker = "snacks",
+      window_position = "bottom",
       close_on_success = true,
       close_on_error = false,
-      pause_before_close = 2000, -- milliseconds
-      window_size = {
-        width = 0.8,
-        height = 0.4,
-      },
+      pause_before_close = 2000,
     })
   end,
   keys = {
-    { "<leader>j", "<cmd>JustRun<cr>", desc = "Just Run" },
+    -- Use Lua function, not command string!
+    { 
+      "<leader>j", 
+      function() require("just-runner").run() end, 
+      desc = "Just Run",
+      mode = "n",
+    },
   },
 }
 ```
 
-### Using [packer.nvim](https://github.com/wbthomason/packer.nvim)
+**Why Lua function?** Using `"<cmd>JustRun<cr>"` can cause issues with lazy loading. The Lua function ensures the plugin loads before executing.
+
+### Alternative: Load on Command
 
 ```lua
-use {
-  "your-username/just-runner.nvim",
-  requires = {
-    "folke/snacks.nvim", -- or "nvim-telescope/telescope.nvim"
-  },
+{
+  "alirezanobakht13/just-runner.nvim",
+  dependencies = { "folke/snacks.nvim" },
+  cmd = { "JustRun", "Just" },
   config = function()
     require("just-runner").setup()
-  end
+  end,
+  keys = {
+    { "<leader>j", "<cmd>JustRun<cr>", desc = "Just Run" },
+  },
 }
 ```
 
@@ -101,30 +107,50 @@ require("just-runner").setup({
 
 ## Usage
 
+### Quick Start
+
+1. **Install `just` command-line tool**:
+   ```bash
+   # Windows (via scoop)
+   scoop install just
+   
+   # macOS
+   brew install just
+   
+   # Linux
+   cargo install just
+   ```
+
+2. **Create a justfile** in your project:
+   ```just
+   # justfile
+   
+   # Build the project
+   build:
+       echo "Building..."
+   
+   # Run tests
+   test:
+       echo "Testing..."
+   ```
+
+3. **Use in Neovim**:
+   - Press `<leader>j` or run `:JustRun`
+   - Select a target from the picker
+   - Done!
+
 ### Commands
 
-The plugin provides two commands:
-
-- `:JustRun` - Open the picker to select and run a justfile target
-- `:Just` - Alias for `:JustRun`
+- `:JustRun [target]` - Run a target (opens picker if no target specified)
+- `:Just [target]` - Alias for `:JustRun`
+- `:JustRun <Tab>` - Tab completion for target names
 
 ### Keymaps
-
-Add keymaps to your configuration:
 
 ```lua
 vim.keymap.set("n", "<leader>j", "<cmd>JustRun<cr>", { desc = "Just Run" })
 vim.keymap.set("n", "<leader>jr", "<cmd>JustRun<cr>", { desc = "Just Run" })
 ```
-
-### Example Workflow
-
-1. Open Neovim in a directory with a justfile
-2. Press `<leader>j` (or run `:JustRun`)
-3. Select a target from the picker
-4. If the target requires parameters, enter them when prompted
-5. The command runs in a terminal window
-6. Terminal auto-closes on success (if configured)
 
 ## Examples
 
@@ -170,16 +196,54 @@ deploy env:
 
 - Ensure you have a file named `justfile`, `Justfile`, or `.justfile` in your project
 - Check that you're in the correct directory or a subdirectory of your project
+- The plugin searches up to 20 parent directories
+
+### "just command not found"
+
+- Install just: https://github.com/casey/just
+- Make sure it's in your PATH
+- Restart Neovim after installation
 
 ### "Telescope/Snacks not found"
 
 - Install the picker dependency you've configured
 - Or switch to a different picker in the configuration
+- Falls back to `vim.ui.select` if no picker is found
 
 ### Terminal doesn't close
 
 - Check your `close_on_success` and `close_on_error` settings
 - The plugin won't close terminals that are waiting for input
+
+### Plugin freezes or crashes
+
+- Make sure you're using the latest version
+- Check `:messages` for error details
+- Open an issue on GitHub with the error message
+
+## Local Development
+
+To test the plugin locally before publishing:
+
+```lua
+{
+  dir = "/path/to/just-runner.nvim",  -- Local path
+  name = "just-runner.nvim",
+  dependencies = { "folke/snacks.nvim" },
+  config = function()
+    require("just-runner").setup()
+  end,
+  keys = {
+    { "<leader>j", function() require("just-runner").run() end, desc = "Just Run" },
+  },
+}
+```
+
+After making changes, reload:
+```vim
+:lua package.loaded['just-runner'] = nil
+:lua require('just-runner').setup()
+```
 
 ## Contributing
 
