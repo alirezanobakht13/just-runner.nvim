@@ -12,7 +12,12 @@ vim.g.loaded_just_runner = 1
 
 -- Completion function for justfile targets
 local function complete_targets(arg_lead, cmd_line, cursor_pos)
-  local jr = require("just-runner")
+  -- Safely try to get targets
+  local ok, jr = pcall(require, "just-runner")
+  if not ok then
+    return {}
+  end
+  
   local targets = jr.get_targets()
   
   if not targets then
@@ -32,7 +37,17 @@ end
 
 -- Create user command with completion
 vim.api.nvim_create_user_command("JustRun", function(opts)
-  local jr = require("just-runner")
+  local ok, jr = pcall(require, "just-runner")
+  if not ok then
+    vim.notify("just-runner.nvim: Failed to load plugin", vim.log.levels.ERROR)
+    return
+  end
+  
+  -- Check if just command exists
+  if vim.fn.executable("just") == 0 then
+    vim.notify("just-runner.nvim: 'just' command not found. Please install it from https://github.com/casey/just", vim.log.levels.ERROR)
+    return
+  end
   
   -- If a target name is provided, run it directly
   if opts.args and opts.args ~= "" then
@@ -49,7 +64,17 @@ end, {
 
 -- Optional: Create shorter alias
 vim.api.nvim_create_user_command("Just", function(opts)
-  local jr = require("just-runner")
+  local ok, jr = pcall(require, "just-runner")
+  if not ok then
+    vim.notify("just-runner.nvim: Failed to load plugin", vim.log.levels.ERROR)
+    return
+  end
+  
+  -- Check if just command exists
+  if vim.fn.executable("just") == 0 then
+    vim.notify("just-runner.nvim: 'just' command not found. Please install it from https://github.com/casey/just", vim.log.levels.ERROR)
+    return
+  end
   
   -- If a target name is provided, run it directly
   if opts.args and opts.args ~= "" then

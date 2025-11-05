@@ -23,6 +23,14 @@ M.config = {
 function M.setup(opts)
   M.config = vim.tbl_deep_extend("force", M.config, opts or {})
   
+  -- Check if 'just' command is available
+  if vim.fn.executable("just") == 0 then
+    vim.notify(
+      "just-runner.nvim: 'just' command not found. Please install it from https://github.com/casey/just",
+      vim.log.levels.WARN
+    )
+  end
+  
   -- Register with which-key if available and enabled
   if M.config.which_key.enabled then
     local has_wk, wk = pcall(require, "which-key")
@@ -134,6 +142,12 @@ end
 
 -- Run a justfile target
 local function run_target(target, args, justfile_dir)
+  -- Check if just command exists before running
+  if vim.fn.executable("just") == 0 then
+    vim.notify("just-runner.nvim: 'just' command not found. Please install it from https://github.com/casey/just", vim.log.levels.ERROR)
+    return
+  end
+  
   local buf = get_term_config()
   local cmd = "just " .. target.name
   
