@@ -175,10 +175,53 @@ local function run_target(target, args, justfile_dir)
   end
   
   -- Change to justfile directory and run command
-  local full_cmd = string.format("cd %s && %s", justfile_dir, cmd)
+  -- Detect shell type and convert paths accordingly
+  local shell = vim.o.shell
+  local shellcmdflag = vim.o.shellcmdflag
+  -- Check for MSYS2/Cygwin by looking for bash/zsh in the shell path
+  local is_msys = shell:match("bash") or shell:match("zsh") or shell:match("/bin/sh")
+  local is_powershell = shell:match("powershell") or shell:match("pwsh")
+  local is_cmd = shell:match("cmd%.exe")
   
-  -- Start terminal job
-  local job_id = vim.fn.termopen(full_cmd, {
+  local work_dir = justfile_dir
+  local cmd_to_run = "just " .. target.name
+  if args and args ~= "" then
+    cmd_to_run = cmd_to_run .. " " .. args
+  end
+  
+  -- Build the full command based on shell type
+  local full_cmd
+  if is_msys then
+    -- Convert Windows path to MSYS2 path (D:\path -> /d/path)
+    if work_dir:match("^%a:") then
+      work_dir = work_dir:gsub("\\", "/")
+      work_dir = work_dir:gsub("^(%a):", function(drive)
+        return "/" .. drive:lower()
+      end)
+    end
+    full_cmd = string.format("cd '%s' && %s", work_dir, cmd_to_run)
+  elseif is_powershell then
+    -- PowerShell: use Set-Location and semicolon
+    full_cmd = string.format("Set-Location '%s'; %s", work_dir, cmd_to_run)
+  elseif is_cmd then
+    -- CMD: use cd /d and &&
+    full_cmd = string.format("cd /d \"%s\" && %s", work_dir, cmd_to_run)
+  else
+    -- Fallback: assume Unix-like shell
+    full_cmd = string.format("cd '%s' && %s", work_dir, cmd_to_run)
+  end
+  
+  -- Start terminal job with explicit shell handling for MSYS2/Unix shells
+  local termopen_cmd
+  if is_msys then
+    -- For MSYS2/Unix shells, use array format with proper -c flag to bypass wrong shellcmdflag
+    termopen_cmd = { shell, "-c", full_cmd }
+  else
+    -- For Windows shells (PowerShell/CMD), let termopen use the configured shell flags
+    termopen_cmd = full_cmd
+  end
+  
+  local job_id = vim.fn.termopen(termopen_cmd, {
     on_exit = function(_, exit_code, _)
       local should_close = (exit_code == 0 and M.config.close_on_success) or
                            (exit_code ~= 0 and M.config.close_on_error)
