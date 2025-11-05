@@ -1,7 +1,7 @@
 # just-runner.nvim
 
 > [!IMPORTANT]  
-> This project is completely vibe coded using copilot-cli and claude-sonnet-4.5. my only contributions is writing prompt.md and this sentence (and helping AI to figure out the bugs during implementation). but it doesn't mean that it doesn't work! it works as expected so far. feel free to open issues and I will ask the AI to help fix them:D
+> This project is completely vibe coded using copilot-cli with claude-sonnet-4.5 model. my only contributions is writing prompt.md and this sentence (also helping AI to figure out the bugs during implementation!). but it doesn't mean it doesn't work! so far it works as expected. feel free to open issues and I will ask AI to fix them:D
 
 A Neovim plugin for running [justfile](https://github.com/casey/just) targets directly from Neovim with a beautiful picker interface.
 
@@ -29,7 +29,7 @@ A Neovim plugin for running [justfile](https://github.com/casey/just) targets di
 
 ```lua
 {
-  "your-username/just-runner.nvim",
+  "alirezanobakht13/just-runner.nvim",
   dependencies = {
     -- Choose one picker:
     "folke/snacks.nvim", -- Recommended (default)
