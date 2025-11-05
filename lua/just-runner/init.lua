@@ -21,24 +21,31 @@ M.config = {
 
 -- Setup function
 function M.setup(opts)
-  M.config = vim.tbl_deep_extend("force", M.config, opts or {})
-  
-  -- Check if 'just' command is available
-  if vim.fn.executable("just") == 0 then
-    vim.notify(
-      "just-runner.nvim: 'just' command not found. Please install it from https://github.com/casey/just",
-      vim.log.levels.WARN
-    )
-  end
-  
-  -- Register with which-key if available and enabled
-  if M.config.which_key.enabled then
-    local has_wk, wk = pcall(require, "which-key")
-    if has_wk and M.config.which_key.keymap then
-      wk.add({
-        { M.config.which_key.keymap, icon = M.config.which_key.icon, desc = M.config.which_key.desc },
-      })
+  -- Wrap everything in pcall
+  local ok, err = pcall(function()
+    M.config = vim.tbl_deep_extend("force", M.config, opts or {})
+    
+    -- Check if 'just' command is available
+    if vim.fn.executable("just") == 0 then
+      vim.notify(
+        "just-runner.nvim: 'just' command not found. Please install it from https://github.com/casey/just",
+        vim.log.levels.WARN
+      )
     end
+    
+    -- Register with which-key if available and enabled
+    if M.config.which_key.enabled then
+      local has_wk, wk = pcall(require, "which-key")
+      if has_wk and M.config.which_key.keymap then
+        pcall(wk.add, {
+          { M.config.which_key.keymap, icon = M.config.which_key.icon, desc = M.config.which_key.desc },
+        })
+      end
+    end
+  end)
+  
+  if not ok then
+    vim.notify("just-runner.nvim setup error: " .. tostring(err), vim.log.levels.ERROR)
   end
 end
 
@@ -46,15 +53,27 @@ end
 local function find_justfile()
   local current_dir = vim.fn.getcwd()
   local justfile_names = { "justfile", "Justfile", ".justfile" }
+  local max_depth = 20 -- Safety limit
+  local depth = 0
   
-  while current_dir ~= "/" and current_dir ~= "" do
+  while depth < max_depth do
+    depth = depth + 1
+    
     for _, name in ipairs(justfile_names) do
       local path = current_dir .. "/" .. name
       if vim.fn.filereadable(path) == 1 then
         return path, current_dir
       end
     end
-    current_dir = vim.fn.fnamemodify(current_dir, ":h")
+    
+    local parent = vim.fn.fnamemodify(current_dir, ":h")
+    
+    -- Stop if we've reached the root or can't go higher
+    if parent == current_dir or parent == "" then
+      break
+    end
+    
+    current_dir = parent
   end
   
   return nil, nil
@@ -239,18 +258,26 @@ end
 
 -- Snacks picker (default)
 local function snacks_picker(targets, justfile_dir)
-  -- For now, let's use vim.ui.select as it's more reliable
-  -- We can add proper snacks integration later once we figure out the exact API
-  vim.ui.select(targets, {
-    prompt = "Select Just Target:",
-    format_item = function(item)
-      return item.display
-    end,
-  }, function(choice)
-    if choice then
-      prompt_for_args(choice, justfile_dir)
-    end
+  -- Wrap in pcall for safety
+  local ok, err = pcall(function()
+    vim.ui.select(targets, {
+      prompt = "Select Just Target:",
+      format_item = function(item)
+        if type(item) == "table" and item.display then
+          return item.display
+        end
+        return tostring(item)
+      end,
+    }, function(choice)
+      if choice and type(choice) == "table" then
+        pcall(prompt_for_args, choice, justfile_dir)
+      end
+    end)
   end)
+  
+  if not ok then
+    vim.notify("just-runner.nvim: Error in picker - " .. tostring(err), vim.log.levels.ERROR)
+  end
 end
 
 -- Main run function
@@ -270,25 +297,22 @@ function M.run()
   
   local targets = parse_justfile(justfile_path)
   
-  -- Debug: show what was parsed
-  if vim.g.just_runner_debug then
-    print("Found justfile: " .. justfile_path)
-    print("Parsed " .. #targets .. " targets:")
-    for _, t in ipairs(targets) do
-      print("  - " .. t.display)
-    end
-  end
-  
   if #targets == 0 then
     vim.notify("No targets found in justfile", vim.log.levels.WARN)
     return
   end
   
-  -- Use configured picker
-  if M.config.picker == "telescope" then
-    telescope_picker(targets, justfile_dir)
-  else
-    snacks_picker(targets, justfile_dir)
+  -- Wrap picker calls in pcall for safety
+  local ok, err = pcall(function()
+    if M.config.picker == "telescope" then
+      telescope_picker(targets, justfile_dir)
+    else
+      snacks_picker(targets, justfile_dir)
+    end
+  end)
+  
+  if not ok then
+    vim.notify("just-runner.nvim: Error opening picker - " .. tostring(err), vim.log.levels.ERROR)
   end
 end
 
