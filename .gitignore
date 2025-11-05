@@ -1,0 +1,21 @@
+# .gitignore for just-runner.nvim
+
+# Vim/Neovim
+*.swp
+*.swo
+*~
+.DS_Store
+
+# Lua
+luac.out
+
+# Testing
+*.tmp
+/tmp/
+
+# Generated documentation
+tags
+doc/tags
+
+# Plugin managers
+.deps/
