@@ -79,38 +79,63 @@ local function find_justfile()
   return nil, nil
 end
 
--- Parse justfile and extract targets
+-- Parse justfile and extract targets using 'just --list'
+-- This approach uses the 'just' command itself to list available recipes,
+-- which properly excludes aliases and only shows actual executable recipes.
+-- Aliases are shown as annotations (e.g., "[alias: b]") but not as separate items.
 local function parse_justfile(justfile_path)
   local targets = {}
-  local file = io.open(justfile_path, "r")
   
-  if not file then
+  -- Use 'just --list' to get available recipes (this excludes aliases)
+  local justfile_dir = vim.fn.fnamemodify(justfile_path, ":h")
+  
+  -- Build command based on shell type for proper path handling
+  local shell = vim.o.shell
+  local is_powershell = shell:match("powershell") or shell:match("pwsh")
+  local is_cmd = shell:match("cmd%.exe")
+  
+  local cmd
+  if is_powershell then
+    cmd = string.format('Set-Location "%s"; just --list --list-heading "" --list-prefix "" --unsorted', justfile_dir)
+  elseif is_cmd then
+    cmd = string.format('cd /d "%s" && just --list --list-heading "" --list-prefix "" --unsorted', justfile_dir)
+  else
+    -- Unix-like shell
+    cmd = string.format('cd "%s" && just --list --list-heading "" --list-prefix "" --unsorted', justfile_dir)
+  end
+  
+  local handle = io.popen(cmd)
+  if not handle then
     return targets
   end
   
-  for line in file:lines() do
-    -- Skip empty lines and comments
-    if line:match("^%s*$") or line:match("^%s*#") then
-      goto continue
+  for line in handle:lines() do
+    -- Skip empty lines
+    if not line:match("^%s*$") then
+      -- Parse format: "recipe_name params # comment" or "recipe_name params"
+      -- The format from 'just --list' is: name followed by optional params, then optional # comment
+      local content = line:match("^%s*(.-)%s*$") -- trim whitespace
+      
+      -- Split by # to separate name/params from comment (including [alias: ...])
+      local name_part = content:match("^(.-)%s*#") or content
+      name_part = name_part:match("^(.-)%s*$") -- trim trailing whitespace
+      
+      -- Extract recipe name (first word) and params (rest)
+      local name, params = name_part:match("^([%w_-]+)%s*(.*)$")
+      
+      if name then
+        -- Clean up parameters
+        params = params and params:gsub("^%s+", ""):gsub("%s+$", "") or ""
+        table.insert(targets, {
+          name = name,
+          params = params ~= "" and params or nil,
+          display = params ~= "" and string.format("%s %s", name, params) or name,
+        })
+      end
     end
-    
-    -- Match recipe definitions (lines starting with non-space and containing :)
-    -- Pattern: name params: recipe
-    local target, params = line:match("^([%w_-]+)%s*([^:]*):.*$")
-    if target and not line:match("^%s*#") and not line:match("^set%s") then
-      -- Clean up parameters
-      params = params:gsub("^%s+", ""):gsub("%s+$", "")
-      table.insert(targets, {
-        name = target,
-        params = params ~= "" and params or nil,
-        display = params ~= "" and string.format("%s %s", target, params) or target,
-      })
-    end
-    
-    ::continue::
   end
   
-  file:close()
+  handle:close()
   return targets
 end
 

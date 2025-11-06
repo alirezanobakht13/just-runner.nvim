@@ -2,6 +2,11 @@
 
 set shell := ["powershell.exe", "-NoLogo", "-Command"]
 
+# Aliases for testing
+alias b := build
+alias t := test
+alias c := clean
+
 # Build the project
 build:
     echo "Building project..."
